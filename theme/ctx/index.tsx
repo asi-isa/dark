@@ -1,7 +1,13 @@
-import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { setStatusBarStyle } from "expo-status-bar";
-import { Appearance, Dimensions, View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   useDerivedValue,
@@ -14,7 +20,6 @@ import {
   dist,
   makeImageFromView,
   mix,
-  vec,
   Image,
   Circle,
   ImageShader,
@@ -22,9 +27,8 @@ import {
 
 import { Colors, type ColorThemeType, type ThemeName } from "../Colors";
 import { wait } from "@/util";
-
-const { width, height } = Dimensions.get("screen");
-const corners = [vec(0, 0), vec(width, 0), vec(width, height), vec(0, height)];
+import { AS_KEYS } from "@/util/async-storage";
+import { CORNERS, HEIGHT, OSTheme, WIDTH } from "@/constants";
 
 interface ThemeContextState {
   themeName: ThemeName;
@@ -33,8 +37,6 @@ interface ThemeContextState {
   overlay1: SkImage | null;
   overlay2: SkImage | null;
 }
-
-const OSTheme = Appearance.getColorScheme() ?? "light";
 
 const defaultState: ThemeContextState = {
   themeName: OSTheme,
@@ -50,20 +52,6 @@ interface ThemeContext extends ThemeContextState {
 }
 
 const ThemeContext = createContext<ThemeContext | null>(null);
-
-export const useTheme = () => {
-  const ctx = useContext(ThemeContext);
-
-  if (ctx === null) {
-    throw new Error("No Theme context found");
-  }
-
-  return ctx;
-};
-
-const AS_KEYS = {
-  themeName: "themeName",
-};
 
 const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeState, setThemeState] = useState(defaultState);
@@ -96,7 +84,7 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }));
 
     // 0. Define the circle and its maximum radius
-    const r = Math.max(...corners.map((corner) => dist(corner, { x, y })));
+    const r = Math.max(...CORNERS.map((corner) => dist(corner, { x, y })));
     circle.value = { x, y, r };
 
     // 1. Take the screenshot
@@ -107,15 +95,15 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     // 3. switch to dark mode
     await wait(16);
-    const newColorScheme = oppositeThemeName();
+    const newThemeName = oppositeThemeName();
 
     setThemeState((currentState) => ({
       ...currentState,
-      themeName: newColorScheme,
-      themeColors: Colors[newColorScheme],
+      themeName: newThemeName,
+      themeColors: Colors[newThemeName],
     }));
 
-    await AsyncStorage.setItem(AS_KEYS.themeName, newColorScheme);
+    await AsyncStorage.setItem(AS_KEYS.themeName, newThemeName);
 
     // 4. wait for the dark mode to render
     await wait(16);
@@ -171,8 +159,8 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
           image={themeState.overlay1}
           x={0}
           y={0}
-          width={width}
-          height={height}
+          width={WIDTH}
+          height={HEIGHT}
         />
         {themeState.overlay2 && (
           <Circle c={circle} r={r}>
@@ -180,8 +168,8 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
               image={themeState.overlay2}
               x={0}
               y={0}
-              width={width}
-              height={height}
+              width={WIDTH}
+              height={HEIGHT}
               fit="cover"
             />
           </Circle>
@@ -192,3 +180,13 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export default ThemeProvider;
+
+export const useTheme = () => {
+  const ctx = useContext(ThemeContext);
+
+  if (ctx === null) {
+    throw new Error("No Theme context found");
+  }
+
+  return ctx;
+};
