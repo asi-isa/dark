@@ -147,6 +147,7 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       if (themeName) {
         toggleTheme(themeName);
+        setStatusBarStyle(themeName === "dark" ? "light" : "dark", true);
       }
     })();
   }, []);

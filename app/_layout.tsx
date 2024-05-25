@@ -5,8 +5,8 @@ import ThemeProvider from "@/theme/ctx";
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
       </Stack>
     </ThemeProvider>
   );
