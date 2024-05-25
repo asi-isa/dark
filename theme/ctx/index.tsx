@@ -56,6 +56,13 @@ const ThemeContext = createContext<ThemeContext | null>(null);
 const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeState, setThemeState] = useState(defaultState);
 
+  const updateThemeState = (newState: Partial<ThemeContextState>) => {
+    setThemeState((currentState) => ({
+      ...currentState,
+      ...newState,
+    }));
+  };
+
   const ref = useRef(null);
   const circle = useSharedValue({ x: 0, y: 0, r: 0 });
   const transition = useSharedValue(0);
@@ -65,23 +72,17 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const toggleTheme = async (theme?: ThemeName) => {
     const themeName = theme ?? oppositeThemeName();
+    const themeColors = Colors[themeName];
 
-    setThemeState({
-      themeName,
-      themeColors: Colors[themeName],
-      isTransitioning: false,
-      overlay1: null,
-      overlay2: null,
-    });
+    updateThemeState({ themeName, themeColors });
+
+    setStatusBarStyle(themeName === "dark" ? "light" : "dark", true);
 
     await AsyncStorage.setItem(AS_KEYS.themeName, themeName);
   };
 
   const toggleThemeWithTransition = async (x: number, y: number) => {
-    setThemeState((currentState) => ({
-      ...currentState,
-      isTransitioning: true,
-    }));
+    updateThemeState({ isTransitioning: true });
 
     // 0. Define the circle and its maximum radius
     const r = Math.max(...CORNERS.map((corner) => dist(corner, { x, y })));
@@ -91,17 +92,16 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const overlay1 = await makeImageFromView(ref);
 
     // 2. display it
-    setThemeState((currentState) => ({ ...currentState, overlay1 }));
+    updateThemeState({ overlay1 });
 
     // 3. switch to dark mode
     await wait(16);
     const newThemeName = oppositeThemeName();
 
-    setThemeState((currentState) => ({
-      ...currentState,
+    updateThemeState({
       themeName: newThemeName,
       themeColors: Colors[newThemeName],
-    }));
+    });
 
     await AsyncStorage.setItem(AS_KEYS.themeName, newThemeName);
 
@@ -110,18 +110,19 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     // 5. take screenshot
     const overlay2 = await makeImageFromView(ref);
-    setThemeState((currentState) => ({ ...currentState, overlay2 }));
+    updateThemeState({ overlay2 });
 
     // 6. transition
     transition.value = 0;
     transition.value = withTiming(1, { duration: 650 });
+
     await wait(650);
-    setThemeState((currentState) => ({
-      ...currentState,
+
+    updateThemeState({
       isTransitioning: false,
       overlay1: null,
       overlay2: null,
-    }));
+    });
 
     setStatusBarStyle(themeState.themeName, true);
   };
@@ -135,7 +136,6 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       if (themeName) {
         toggleTheme(themeName);
-        setStatusBarStyle(themeName === "dark" ? "light" : "dark", true);
       }
     })();
   }, []);
